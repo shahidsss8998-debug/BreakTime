@@ -12,11 +12,18 @@
  */
 const admin = require('firebase-admin');
 
+// Format and sanitize the private key to handle double-quotes and escaped newlines from env variables
+let privateKey = process.env.FIREBASE_PRIVATE_KEY || '';
+if (privateKey.startsWith('"') && privateKey.endsWith('"')) {
+  privateKey = privateKey.substring(1, privateKey.length - 1);
+}
+privateKey = privateKey.replace(/\\n/g, '\n');
+
 // Build the service account config from environment variables
 const serviceAccount = {
   type: 'service_account',
   project_id: process.env.FIREBASE_PROJECT_ID,
-  private_key: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
+  private_key: privateKey,
   client_email: process.env.FIREBASE_CLIENT_EMAIL,
 };
 
