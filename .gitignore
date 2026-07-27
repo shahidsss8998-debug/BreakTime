@@ -1,0 +1,27 @@
+# Dependencies
+node_modules/
+frontend/node_modules/
+backend/server/node_modules/
+
+# Production build outputs
+dist/
+frontend/dist/
+build/
+
+# Vite / IDE / Temporary files
+.vite/
+frontend/.vite/
+.DS_Store
+*.log
+npm-debug.log*
+
+# Environment Variables & Secrets
+.env
+.env.local
+.env.development.local
+.env.production.local
+backend/server/.env
+
+# Local IDE
+.vscode/
+.idea/

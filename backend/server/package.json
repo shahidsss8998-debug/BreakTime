@@ -1,0 +1,21 @@
+{
+  "name": "breaktime-cafe-backend",
+  "version": "1.0.0",
+  "description": "Express.js backend for Break Time Cafe — order management & email notifications",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "firebase-admin": "^13.0.2",
+    "nodemailer": "^6.10.1",
+    "validator": "^13.12.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

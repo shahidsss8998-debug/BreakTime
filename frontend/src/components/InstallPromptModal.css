@@ -1,0 +1,194 @@
+.pwa-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  animation: fadeInPage 0.3s ease;
+}
+
+.pwa-modal-content {
+  background: var(--bg-card);
+  border-radius: var(--radius-lg);
+  width: 100%;
+  max-width: 400px;
+  box-shadow: var(--shadow-xl);
+  overflow: hidden;
+}
+
+.pwa-modal-header {
+  padding: 24px 24px 16px;
+  text-align: center;
+  background: var(--primary-light);
+  border-bottom: 1px solid var(--border-light);
+}
+
+.pwa-logo {
+  width: 64px;
+  height: 64px;
+  object-fit: contain;
+  margin: 0 auto 12px;
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+  background: #fff;
+  padding: 4px;
+}
+
+.pwa-modal-header h3 {
+  font-family: var(--font-heading);
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.pwa-modal-body {
+  padding: 24px;
+}
+
+.pwa-modal-body p {
+  color: var(--text-secondary);
+  font-size: 0.95rem;
+  line-height: 1.5;
+  margin-bottom: 20px;
+  text-align: center;
+}
+
+.pwa-never-ask {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  cursor: pointer;
+  justify-content: center;
+}
+
+.pwa-never-ask input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--primary);
+  cursor: pointer;
+}
+
+.pwa-modal-actions {
+  display: flex;
+  gap: 12px;
+  padding: 16px 24px 24px;
+}
+
+.pwa-modal-actions button {
+  flex: 1;
+}
+
+/* ── MOBILE & TABLET SMALLER MODAL ── */
+@media (max-width: 768px) {
+  .pwa-modal-overlay {
+    padding: 16px;
+  }
+
+  .pwa-modal-content {
+    max-width: 310px;
+    border-radius: var(--radius-md);
+  }
+
+  .pwa-modal-header {
+    padding: 14px 14px 10px;
+  }
+
+  .pwa-logo {
+    width: 44px;
+    height: 44px;
+    margin-bottom: 6px;
+    padding: 2px;
+  }
+
+  .pwa-modal-header h3 {
+    font-size: 1.05rem;
+  }
+
+  .pwa-modal-body {
+    padding: 14px 16px;
+  }
+
+  .pwa-modal-body p {
+    font-size: 0.82rem;
+    margin-bottom: 12px;
+    line-height: 1.4;
+  }
+
+  .pwa-never-ask {
+    font-size: 0.75rem;
+    gap: 6px;
+  }
+
+  .pwa-never-ask input[type="checkbox"] {
+    width: 14px;
+    height: 14px;
+  }
+
+  .pwa-modal-actions {
+    padding: 10px 14px 14px;
+    gap: 8px;
+  }
+
+  .pwa-modal-actions button {
+    padding: 8px 14px;
+    font-size: 0.8rem;
+  }
+}
+
+/* ── SMALL MOBILE SCREENS (COMPACT) ── */
+@media (max-width: 480px) {
+  .pwa-modal-content {
+    max-width: 265px;
+    border-radius: var(--radius-sm);
+  }
+
+  .pwa-modal-header {
+    padding: 10px 10px 6px;
+  }
+
+  .pwa-logo {
+    width: 36px;
+    height: 36px;
+    margin-bottom: 4px;
+    padding: 2px;
+  }
+
+  .pwa-modal-header h3 {
+    font-size: 0.92rem;
+  }
+
+  .pwa-modal-body {
+    padding: 10px 12px;
+  }
+
+  .pwa-modal-body p {
+    font-size: 0.75rem;
+    margin-bottom: 8px;
+    line-height: 1.35;
+  }
+
+  .pwa-never-ask {
+    font-size: 0.68rem;
+    gap: 4px;
+  }
+
+  .pwa-never-ask input[type="checkbox"] {
+    width: 12px;
+    height: 12px;
+  }
+
+  .pwa-modal-actions {
+    padding: 6px 10px 10px;
+    gap: 6px;
+  }
+
+  .pwa-modal-actions button {
+    padding: 6px 8px;
+    font-size: 0.72rem;
+  }
+}
