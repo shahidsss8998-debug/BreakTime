@@ -6,6 +6,8 @@ backend/server/node_modules/
 # Production build outputs
 dist/
 frontend/dist/
+dev-dist/
+frontend/dev-dist/
 build/
 
 # Vite / IDE / Temporary files

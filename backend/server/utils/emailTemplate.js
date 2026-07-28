@@ -108,7 +108,8 @@ function generateOrderEmailHTML(orderData) {
   const orderTime = formatDate(createdAt || new Date());
   const displayOrderId = orderNumber || (orderId ? `#${orderId.slice(0, 8).toUpperCase()}` : 'N/A');
   const calculatedDeliveryFee = deliveryFee ?? deliveryDetails.deliveryFee ?? 0;
-  const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+  const rawFrontendUrl = process.env.FRONTEND_URL || 'https://breaktime0.netlify.app';
+  const frontendUrl = rawFrontendUrl.replace(/\/$/, '');
   const adminOrderUrl = orderId ? `${frontendUrl}/admin/orders/${orderId}` : `${frontendUrl}/admin/orders`;
 
   return `

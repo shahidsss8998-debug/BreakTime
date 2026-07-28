@@ -112,8 +112,9 @@ export default function AdminSidebar({ isOpen, onToggle }) {
               </span>
             </div>
           </div>
-          <button onClick={() => setShowLogoutModal(true)} className="admin-logout-btn" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <LogOut size={18} /> Logout
+          <button className="admin-sidebar-logout" onClick={() => setShowLogoutModal(true)}>
+            <LogOut size={18} />
+            <span>Sign Out</span>
           </button>
         </div>
       </aside>

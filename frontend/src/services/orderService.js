@@ -186,8 +186,8 @@ export async function createManualOrder(orderPayload) {
 
 // ─── Backend API URL ────────────────────────────────────────────
 // Points to the Express backend on Render (production) or localhost (dev).
-// Update this when you deploy the backend to Render.
-const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000';
+const rawBackendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000';
+const BACKEND_URL = rawBackendUrl.replace(/\/$/, '');
 
 /**
  * Place a new order via the Express backend (with email notification).

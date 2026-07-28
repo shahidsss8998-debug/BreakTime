@@ -91,56 +91,51 @@ function AppRoutes({ showBackTop, scrollToTop }) {
 
   // Admin routes — no Navbar/Footer
   if (isAdminRoute) {
-    const isAdminAuthRoute = location.pathname === '/admin/login' || location.pathname === '/admin/signup';
-
     return (
-      <>
-        <Routes>
-          <Route path="/admin/login" element={<AdminLogin />} />
-          <Route path="/admin/signup" element={<AdminSignup />} />
-          <Route
-            path="/admin/dashboard"
-            element={
-              <AdminProtectedRoute>
-                <AdminDashboard />
-              </AdminProtectedRoute>
-            }
-          />
-          <Route
-            path="/admin/orders"
-            element={
-              <AdminProtectedRoute>
-                <AdminOrdersPage />
-              </AdminProtectedRoute>
-            }
-          />
-          <Route
-            path="/admin/history"
-            element={
-              <AdminProtectedRoute>
-                <AdminHistoryPage />
-              </AdminProtectedRoute>
-            }
-          />
-          <Route
-            path="/admin/orders/:id"
-            element={
-              <AdminProtectedRoute>
-                <OrderDetails />
-              </AdminProtectedRoute>
-            }
-          />
-          <Route
-            path="/admin/menu"
-            element={
-              <AdminProtectedRoute>
-                <AdminMenuManager />
-              </AdminProtectedRoute>
-            }
-          />
-        </Routes>
-        {!isAdminAuthRoute && <InstallPromptModal />}
-      </>
+      <Routes>
+        <Route path="/admin/login" element={<AdminLogin />} />
+        <Route path="/admin/signup" element={<AdminSignup />} />
+        <Route
+          path="/admin/dashboard"
+          element={
+            <AdminProtectedRoute>
+              <AdminDashboard />
+            </AdminProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/orders"
+          element={
+            <AdminProtectedRoute>
+              <AdminOrdersPage />
+            </AdminProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/history"
+          element={
+            <AdminProtectedRoute>
+              <AdminHistoryPage />
+            </AdminProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/orders/:id"
+          element={
+            <AdminProtectedRoute>
+              <OrderDetails />
+            </AdminProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/menu"
+          element={
+            <AdminProtectedRoute>
+              <AdminMenuManager />
+            </AdminProtectedRoute>
+          }
+        />
+      </Routes>
     );
   }
 

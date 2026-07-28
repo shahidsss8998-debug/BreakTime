@@ -61,8 +61,8 @@ export default function AdminSignup() {
           </div>
 
           {error && (
-            <div className="auth-error" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <XCircle size={16} /> {error}
+            <div className="auth-error">
+              <XCircle size={16} /> <span>{error}</span>
             </div>
           )}
 

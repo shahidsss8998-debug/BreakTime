@@ -11,12 +11,13 @@
 const nodemailer = require('nodemailer');
 
 // Create reusable transporter using Gmail SMTP
+const emailPass = (process.env.EMAIL_PASS || '').replace(/["'\s]/g, '');
+
 const transporter = nodemailer.createTransport({
   service: 'gmail',
   auth: {
-    user: process.env.EMAIL_USER,
-    // Strip spaces from Gmail App Passwords (e.g., "owjm zmlt mkyz xnej" -> "owjmzmltmkyzxnej")
-    pass: process.env.EMAIL_PASS ? process.env.EMAIL_PASS.replace(/\s+/g, '') : '',
+    user: (process.env.EMAIL_USER || '').trim().replace(/["']/g, ''),
+    pass: emailPass,
   },
 });
 

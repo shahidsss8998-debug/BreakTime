@@ -7,7 +7,8 @@
  */
 
 // Backend API URL — same pattern used by orderService.js
-const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000';
+const rawBackendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000';
+const BACKEND_URL = rawBackendUrl.replace(/\/$/, '');
 
 /**
  * Check delivery distance and charge by sending customer coordinates

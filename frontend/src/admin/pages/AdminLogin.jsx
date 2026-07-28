@@ -10,6 +10,12 @@ export default function AdminLogin() {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
+  const isStandalone = typeof window !== 'undefined' && (
+    window.matchMedia('(display-mode: standalone)').matches ||
+    window.navigator.standalone === true ||
+    document.referrer.includes('android-app://')
+  );
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
@@ -50,16 +56,22 @@ export default function AdminLogin() {
         {/* Right Side — Form */}
         <div className="auth-card">
           <div className="auth-header">
-            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '16px' }}>
-              <img src="/logo.png" alt="Break Time Logo" style={{ height: '48px', width: 'auto' }} />
-            </div>
+            {isStandalone ? (
+              <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '16px' }}>
+                <img src="/logo.png" alt="Break Time Logo" style={{ height: '48px', width: 'auto' }} />
+              </div>
+            ) : (
+              <Link to="/" style={{ display: 'flex', justifyContent: 'center', marginBottom: '16px' }}>
+                <img src="/logo.png" alt="Break Time Logo" style={{ height: '48px', width: 'auto' }} />
+              </Link>
+            )}
             <h1>Admin Login</h1>
             <p>Enter your credentials to access the portal</p>
           </div>
 
           {error && (
-            <div className="auth-error" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <XCircle size={16} /> {error}
+            <div className="auth-error">
+              <XCircle size={16} /> <span>{error}</span>
             </div>
           )}
 
@@ -101,9 +113,11 @@ export default function AdminLogin() {
             </button>
           </form>
 
-          <div className="auth-footer">
-            <Link to="/">← Back to Customer Website</Link>
-          </div>
+          {!isStandalone && (
+            <div className="auth-footer">
+              <Link to="/">← Back to Customer Website</Link>
+            </div>
+          )}
         </div>
       </div>
     </div>
