@@ -104,8 +104,7 @@ async function createOrder(req, res) {
     const orderId = docRef.id;
     console.log(`✅ Order saved to Firestore — ID: ${orderId}, Number: ${orderNumber}`);
 
-    // ── 3. Send email notification (fire-and-forget on failure) ──
-    // Email failure must NOT affect the order. We log errors but return success.
+    // ── 3. Send email notification (fire-and-forget to speed up response) ──
     const emailData = {
       ...orderData,
       orderId,
@@ -113,23 +112,25 @@ async function createOrder(req, res) {
       createdAt: new Date(),
     };
 
-    const emailResult = await sendOrderNotification(emailData);
+    sendOrderNotification(emailData)
+      .then((emailResult) => {
+        if (emailResult.success) {
+          console.log(`📧 Notification email sent for order ${orderNumber}`);
+        } else {
+          console.error(`⚠️  Email notification failed for order ${orderNumber}:`, emailResult.error);
+        }
+      })
+      .catch((err) => {
+        console.error(`⚠️  Unhandled error in sendOrderNotification for order ${orderNumber}:`, err);
+      });
 
-    if (emailResult.success) {
-      console.log(`📧 Notification email sent for order ${orderNumber}`);
-    } else {
-      // Log the failure but do NOT return an error to the customer
-      console.error(`⚠️  Email notification failed for order ${orderNumber}:`, emailResult.error);
-      console.error('   Order is saved. Email can be resent manually.');
-    }
-
-    // ── 4. Return success to the customer ──
+    // ── 4. Return success to the customer immediately ──
     return res.status(201).json({
       success: true,
       message: 'Order placed successfully!',
       orderId,
       orderNumber,
-      emailSent: emailResult.success,
+      emailSent: 'pending',
     });
   } catch (error) {
     console.error('❌ Unexpected error in createOrder:', error.message);

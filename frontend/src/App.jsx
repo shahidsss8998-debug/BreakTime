@@ -1,4 +1,4 @@
-import { BrowserRouter as Router, Routes, Route, useLocation, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, useLocation, Navigate, useNavigate } from 'react-router-dom';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
 
@@ -37,6 +37,7 @@ import AdminProtectedRoute from './admin/routes/AdminProtectedRoute';
 import { useEffect, useState } from 'react';
 import { CartProvider } from './context/CartContext';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import LoadingScreen from './components/LoadingScreen';
 
 function App() {
   const [showBackTop, setShowBackTop] = useState(false);
@@ -72,8 +73,25 @@ function App() {
  */
 function AppRoutes({ showBackTop, scrollToTop }) {
   const location = useLocation();
+  const navigate = useNavigate();
   const { isLoggedIn, loading } = useAuth();
   const isAdminRoute = location.pathname.startsWith('/admin');
+
+  // Enforce login for PWA Standalone Mode
+  useEffect(() => {
+    if (!loading && !isLoggedIn && !isAdminRoute) {
+      const isStandalone = typeof window !== 'undefined' && (
+        window.matchMedia('(display-mode: standalone)').matches ||
+        window.navigator.standalone === true
+      );
+
+      if (isStandalone) {
+        if (location.pathname !== '/login' && location.pathname !== '/signup') {
+          navigate('/login', { replace: true });
+        }
+      }
+    }
+  }, [loading, isLoggedIn, isAdminRoute, location.pathname, navigate]);
 
   useEffect(() => {
     if (isAdminRoute) {
@@ -88,6 +106,11 @@ function AppRoutes({ showBackTop, scrollToTop }) {
       }
     }
   }, [location.pathname, isAdminRoute]);
+
+  // Fullscreen loading screen while Firebase Auth checks initial session state
+  if (loading && !isAdminRoute) {
+    return <LoadingScreen message="Checking session..." />;
+  }
 
   // Admin routes — no Navbar/Footer
   if (isAdminRoute) {

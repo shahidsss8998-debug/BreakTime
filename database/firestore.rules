@@ -30,7 +30,8 @@ service cloud.firestore {
         exists(/databases/$(database)/documents/admins/$(request.auth.uid));
       allow update: if request.auth != null && (
         exists(/databases/$(database)/documents/admins/$(request.auth.uid)) ||
-        (resource.data.customerId == request.auth.uid && request.resource.data.status == 'cancelled' && resource.data.status == 'placed')
+        (resource.data.customerId == request.auth.uid && request.resource.data.status == 'cancelled' && resource.data.status == 'placed') ||
+        (resource.data.customerId == request.auth.uid && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['customerHidden']))
       );
     }
 

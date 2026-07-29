@@ -2,16 +2,22 @@
  * Auth Context
  * Provides customer authentication state across the app.
  * Wraps Firebase onAuthStateChanged and exposes user data,
- * login/signup/logout methods.
+ * session loading state, and auth methods.
  */
 import { createContext, useState, useContext, useEffect } from 'react';
-import { onAuthChange, getCustomerProfile } from '../services/authService';
+import {
+  onAuthChange,
+  getCustomerProfile,
+  loginCustomer,
+  signUpCustomer,
+  logoutCustomer
+} from '../services/authService';
 
 const AuthContext = createContext();
 
 /**
  * Hook to access auth context
- * @returns {{ user, userProfile, loading, isLoggedIn }}
+ * @returns {{ currentUser, user, userProfile, loading, authLoading, isLoggedIn, login, signup, logout }}
  */
 export function useAuth() {
   return useContext(AuthContext);
@@ -29,32 +35,37 @@ export function AuthProvider({ children }) {
   useEffect(() => {
     // Listen to Firebase Auth state changes
     const unsubscribe = onAuthChange(async (firebaseUser) => {
-      setUser(firebaseUser);
+      try {
+        setUser(firebaseUser);
 
-      if (firebaseUser) {
-        // Fetch the customer profile from Firestore
-        try {
+        if (firebaseUser) {
+          // Fetch the customer profile from Firestore
           const profile = await getCustomerProfile(firebaseUser.uid);
           setUserProfile(profile);
-        } catch (error) {
-          console.error('Error fetching user profile:', error);
+        } else {
           setUserProfile(null);
         }
-      } else {
+      } catch (error) {
+        console.error('Error in auth state change handler:', error);
         setUserProfile(null);
+      } finally {
+        setLoading(false);
       }
-
-      setLoading(false);
     });
 
     return () => unsubscribe();
   }, []);
 
   const value = {
-    user,             // Firebase Auth user (has .uid, .email, .displayName)
-    userProfile,      // Firestore profile (has .name, .email, .createdAt)
-    loading,          // True during initial auth check
-    isLoggedIn: !!user // Convenience boolean
+    currentUser: user,    // Firebase Auth user object
+    user,                 // Alias for backward compatibility
+    userProfile,          // Firestore profile data
+    loading,              // True during initial auth check
+    authLoading: loading, // Alias for auth loading
+    isLoggedIn: !!user,   // Convenience boolean
+    login: loginCustomer,
+    signup: signUpCustomer,
+    logout: logoutCustomer
   };
 
   return (

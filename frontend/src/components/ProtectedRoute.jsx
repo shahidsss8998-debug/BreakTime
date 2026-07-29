@@ -1,21 +1,12 @@
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import LoadingScreen from './LoadingScreen';
 
 export default function ProtectedRoute({ children }) {
   const { isLoggedIn, loading } = useAuth();
 
   if (loading) {
-    return (
-      <div style={{
-        display: 'flex',
-        justifyContent: 'center',
-        alignItems: 'center',
-        minHeight: '60vh',
-        background: 'var(--bg-section)'
-      }}>
-        <div className="admin-loading-spinner"></div>
-      </div>
-    );
+    return <LoadingScreen message="Verifying session..." />;
   }
 
   if (!isLoggedIn) {

@@ -6,6 +6,7 @@
 import { useState, useEffect } from 'react';
 import { Navigate } from 'react-router-dom';
 import { onAdminAuthChange, checkIsAdmin } from '../../services/adminAuthService';
+import LoadingScreen from '../../components/LoadingScreen';
 
 export default function AdminProtectedRoute({ children }) {
   const [authState, setAuthState] = useState('loading'); // 'loading' | 'authenticated' | 'unauthenticated'
@@ -31,12 +32,7 @@ export default function AdminProtectedRoute({ children }) {
   }, []);
 
   if (authState === 'loading') {
-    return (
-      <div className="admin-loading-screen">
-        <div className="admin-loading-spinner"></div>
-        <p>Verifying admin access...</p>
-      </div>
-    );
+    return <LoadingScreen message="Verifying admin session..." />;
   }
 
   if (authState === 'unauthenticated') {

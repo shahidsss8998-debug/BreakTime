@@ -211,8 +211,6 @@ const BACKEND_URL = rawBackendUrl.replace(/\/$/, '');
  */
 export async function placeOrderWithEmail(customerId, customerName, customerEmail, items, total, deliveryDetails) {
   try {
-    console.log('[orderService] placeOrderWithEmail: Calling backend API...');
-
     const response = await fetch(`${BACKEND_URL}/api/orders`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -232,14 +230,11 @@ export async function placeOrderWithEmail(customerId, customerName, customerEmai
       throw new Error(data.message || 'Backend returned an error');
     }
 
-    console.log(`[orderService] placeOrderWithEmail: Order created via backend — ${data.orderId}`);
-    console.log(`[orderService] placeOrderWithEmail: Email sent: ${data.emailSent}`);
     return data.orderId;
   } catch (error) {
-    console.warn('[orderService] placeOrderWithEmail: Backend call failed:', error.message);
-    console.warn('[orderService] placeOrderWithEmail: Falling back to direct Firestore write...');
+    console.warn('[orderService] Backend call failed, using direct Firestore write:', error.message);
 
-    // Fallback: use the original placeOrder (no email, but order is saved)
+    // Fallback: use original placeOrder (no email, but order is saved)
     return placeOrder(customerId, customerName, customerEmail, items, total, deliveryDetails);
   }
 }
@@ -264,7 +259,6 @@ export function listenToOrders(callback, statusFilter = null, onError = null) {
     q = query(ordersRef, orderBy('createdAt', 'desc'));
   }
 
-  console.log(`[orderService] listenToOrders: Attaching listener for status: ${statusFilter || 'all'}`);
   return onSnapshot(q, (snapshot) => {
     let orders = snapshot.docs.map(doc => ({
       id: doc.id,
@@ -281,10 +275,9 @@ export function listenToOrders(callback, statusFilter = null, onError = null) {
       return timeB - timeA;
     });
 
-    console.log(`[orderService] listenToOrders: Received ${orders.length} orders`);
     callback(orders);
   }, (error) => {
-    console.error('[orderService] listenToOrders: Error listening to orders:', error);
+    console.error('[orderService] Error listening to orders:', error);
     if (onError) onError(error);
     else callback([]);
   });
@@ -303,7 +296,6 @@ export function listenToCustomerOrders(customerId, callback, onError = null) {
     where('customerId', '==', customerId)
   );
 
-  console.log(`[orderService] listenToCustomerOrders: Attaching listener for customer: ${customerId}`);
   return onSnapshot(q, (snapshot) => {
     let orders = snapshot.docs.map(doc => ({
       id: doc.id,
@@ -320,10 +312,9 @@ export function listenToCustomerOrders(customerId, callback, onError = null) {
       return timeB - timeA;
     });
 
-    console.log(`[orderService] listenToCustomerOrders: Received ${orders.length} orders`);
     callback(orders);
   }, (error) => {
-    console.error(`[orderService] listenToCustomerOrders: Error for ${customerId}:`, error);
+    console.error(`[orderService] Error for customer ${customerId}:`, error);
     if (onError) onError(error);
     else callback([]);
   });
@@ -350,18 +341,15 @@ export async function getOrderById(orderId) {
  * @returns {Function} Unsubscribe function
  */
 export function listenToOrder(orderId, callback, onError = null) {
-  console.log(`[orderService] listenToOrder: Attaching listener for order: ${orderId}`);
   return onSnapshot(doc(db, 'orders', orderId), (docSnap) => {
-    console.log(`[orderService] listenToOrder: Snapshot exists: ${docSnap.exists()}`);
     if (docSnap.exists()) {
       const orderData = { id: docSnap.id, ...docSnap.data() };
-      console.log(`[orderService] listenToOrder: Snapshot data:`, orderData);
       callback(orderData);
     } else {
       callback(null);
     }
   }, (error) => {
-    console.error(`[orderService] listenToOrder: Error for ${orderId}:`, error);
+    console.error(`[orderService] Error for order ${orderId}:`, error);
     if (onError) onError(error);
   });
 }

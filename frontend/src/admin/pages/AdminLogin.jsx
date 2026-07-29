@@ -4,8 +4,8 @@ import { loginAdmin } from '../../services/adminAuthService';
 import { XCircle } from 'lucide-react';
 
 export default function AdminLogin() {
-  const [email, setEmail] = useState('admin@breaktime.com');
-  const [password, setPassword] = useState('admin@123');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();

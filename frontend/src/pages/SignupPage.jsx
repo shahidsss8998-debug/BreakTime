@@ -1,9 +1,12 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { signUpCustomer, signInWithGoogle } from '../services/authService';
+import { useAuth } from '../context/AuthContext';
+import { signInWithGoogle } from '../services/authService';
 import { XCircle } from 'lucide-react';
+import LoadingScreen from '../components/LoadingScreen';
 
 export default function SignupPage() {
+  const { isLoggedIn, loading: authLoading, signup } = useAuth();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -12,6 +15,12 @@ export default function SignupPage() {
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    if (!authLoading && isLoggedIn) {
+      navigate('/', { replace: true });
+    }
+  }, [authLoading, isLoggedIn, navigate]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -30,7 +39,9 @@ export default function SignupPage() {
     setLoading(true);
 
     try {
-      await signUpCustomer(email, password, name);
+      if (signup) {
+        await signup(email, password, name);
+      }
       navigate('/');
     } catch (err) {
       console.error('Signup error:', err);
@@ -61,6 +72,10 @@ export default function SignupPage() {
       setGoogleLoading(false);
     }
   };
+
+  if (authLoading) {
+    return <LoadingScreen message="Checking session..." />;
+  }
 
   return (
     <div className="auth-section">

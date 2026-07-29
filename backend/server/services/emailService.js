@@ -16,8 +16,8 @@ const { generateOrderEmailHTML } = require('../utils/emailTemplate');
  */
 async function sendOrderNotification(orderData) {
   try {
-    const adminEmail = process.env.ADMIN_EMAIL || process.env.EMAIL_USER;
-    const senderEmail = process.env.EMAIL_USER;
+    const adminEmail = (process.env.ADMIN_EMAIL || process.env.EMAIL_USER || '').trim().replace(/["']/g, '');
+    const senderEmail = (process.env.EMAIL_USER || '').trim().replace(/["']/g, '');
 
     if (!senderEmail) {
       console.error('❌ EMAIL_USER not configured — cannot send email');

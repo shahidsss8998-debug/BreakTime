@@ -1,15 +1,24 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { loginCustomer, signInWithGoogle } from '../services/authService';
+import { useAuth } from '../context/AuthContext';
+import { signInWithGoogle } from '../services/authService';
 import { XCircle, Utensils } from 'lucide-react';
+import LoadingScreen from '../components/LoadingScreen';
 
 export default function LoginPage() {
+  const { isLoggedIn, loading: authLoading, login } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    if (!authLoading && isLoggedIn) {
+      navigate('/', { replace: true });
+    }
+  }, [authLoading, isLoggedIn, navigate]);
 
   const isStandalone = typeof window !== 'undefined' && (
     window.matchMedia('(display-mode: standalone)').matches ||
@@ -23,7 +32,9 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      await loginCustomer(email, password);
+      if (login) {
+        await login(email, password);
+      }
       navigate('/');
     } catch (err) {
       console.error('Login error:', err);
@@ -56,6 +67,10 @@ export default function LoginPage() {
       setGoogleLoading(false);
     }
   };
+
+  if (authLoading) {
+    return <LoadingScreen message="Checking session..." />;
+  }
 
   return (
     <div className="auth-section">
