@@ -49,6 +49,62 @@ app.get('/api/health', (req, res) => {
   });
 });
 
+// Email Diagnostic — checks if SMTP credentials are configured and can connect
+app.get('/api/health/email', async (req, res) => {
+  const { transporter } = require('./config/mailConfig');
+  const emailUser = (process.env.EMAIL_USER || '').trim();
+  const emailPass = (process.env.EMAIL_PASS || '').trim();
+  const adminEmail = (process.env.ADMIN_EMAIL || '').trim();
+
+  const diagnostics = {
+    EMAIL_USER_set: !!emailUser,
+    EMAIL_USER_value: emailUser ? `${emailUser.slice(0, 4)}***${emailUser.slice(-10)}` : 'NOT SET',
+    EMAIL_PASS_set: !!emailPass,
+    EMAIL_PASS_length: emailPass.length,
+    ADMIN_EMAIL_set: !!adminEmail,
+    ADMIN_EMAIL_value: adminEmail ? `${adminEmail.slice(0, 4)}***${adminEmail.slice(-10)}` : 'NOT SET',
+  };
+
+  try {
+    await transporter.verify();
+    diagnostics.smtp_connection = 'SUCCESS';
+    diagnostics.smtp_ready = true;
+  } catch (error) {
+    diagnostics.smtp_connection = 'FAILED';
+    diagnostics.smtp_error = error.message;
+    diagnostics.smtp_ready = false;
+  }
+
+  res.status(200).json(diagnostics);
+});
+
+// Send a real test email — use this once to confirm emails arrive
+app.get('/api/health/email-test', async (req, res) => {
+  const { sendOrderNotification } = require('./services/emailService');
+
+  const testOrderData = {
+    orderNumber: 'BT-TEST01',
+    orderId: 'test-diagnostic-001',
+    customerName: 'Test Customer',
+    customerEmail: 'test@example.com',
+    customerPhone: '0000000000',
+    items: [{ id: '1', name: 'Test Item', price: 100, quantity: 1, img: '' }],
+    subtotal: 100,
+    deliveryFee: 0,
+    total: 100,
+    deliveryAddress: 'Test Address',
+    deliveryDetails: { place: 'Test Address', phone: '0000000000', deliveryZone: 'test', deliveryFee: 0 },
+    status: 'placed',
+    createdAt: new Date(),
+  };
+
+  const result = await sendOrderNotification(testOrderData);
+  res.status(200).json({
+    message: result.success ? 'Test email sent successfully!' : 'Email sending failed',
+    ...result,
+  });
+});
+
 // API Routes
 app.use('/api/orders', orderRoutes);
 
