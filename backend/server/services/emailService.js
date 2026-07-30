@@ -53,10 +53,13 @@ async function sendOrderNotification(orderData) {
           console.log(`✅ Email sent via Resend HTTPS API — ID: ${resendData.id}`);
           return { success: true, messageId: resendData.id, provider: 'Resend (HTTPS)' };
         } else {
-          console.warn(`⚠️ Resend API returned error:`, resendData.message || resendData);
+          const errMsg = resendData.message || JSON.stringify(resendData);
+          console.warn(`⚠️ Resend API returned error:`, errMsg);
+          return { success: false, error: `Resend API Error: ${errMsg}`, provider: 'Resend (HTTPS)' };
         }
       } catch (resendErr) {
         console.warn(`⚠️ Resend HTTPS API call failed:`, resendErr.message);
+        return { success: false, error: `Resend Fetch Failed: ${resendErr.message}`, provider: 'Resend (HTTPS)' };
       }
     }
 
