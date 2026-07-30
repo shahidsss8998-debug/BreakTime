@@ -2,7 +2,11 @@
  * Email Service
  *
  * Reusable service for sending order notification emails.
- * Uses primary SMTP transporter (Port 587) with fallback (Port 465).
+ * Supports:
+ *   1. Resend HTTPS API (Port 443 - Recommended for Render)
+ *   2. Brevo HTTPS API (Port 443 - Fallback)
+ *   3. Gmail SMTP Transporter (Port 587 / 465)
+ *
  * Handles errors gracefully — never throws, always returns a result object.
  */
 const { transporter, fallbackTransporter } = require('../config/mailConfig');
@@ -12,47 +16,110 @@ const { generateOrderEmailHTML } = require('../utils/emailTemplate');
  * Send an order notification email to the restaurant admin.
  *
  * @param {Object} orderData - Complete order data for the email
- * @returns {{ success: boolean, messageId?: string, error?: string }}
+ * @returns {{ success: boolean, messageId?: string, provider?: string, error?: string }}
  */
 async function sendOrderNotification(orderData) {
   try {
     const adminEmail = (process.env.ADMIN_EMAIL || process.env.EMAIL_USER || '').trim().replace(/["']/g, '');
     const senderEmail = (process.env.EMAIL_USER || '').trim().replace(/["']/g, '');
 
+    const htmlContent = generateOrderEmailHTML(orderData);
+    const orderNumber = orderData.orderNumber || orderData.orderId || 'New';
+    const textContent = buildPlainText(orderData);
+
+    // ── Mode 1: Resend HTTPS API (Port 443 — NEVER BLOCKED BY RENDER) ──
+    const resendApiKey = (process.env.RESEND_API_KEY || '').trim();
+    if (resendApiKey) {
+      console.log(`📧 Sending order notification via Resend HTTPS API...`);
+      try {
+        const resendFrom = (process.env.RESEND_FROM_EMAIL || 'Break Time Cafe <onboarding@resend.dev>').trim();
+        const resendRes = await fetch('https://api.resend.com/emails', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${resendApiKey}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            from: resendFrom,
+            to: [adminEmail || senderEmail],
+            subject: `🍽 New Order Received — ${orderNumber}`,
+            html: htmlContent,
+            text: textContent,
+          }),
+        });
+
+        const resendData = await resendRes.json();
+        if (resendRes.ok) {
+          console.log(`✅ Email sent via Resend HTTPS API — ID: ${resendData.id}`);
+          return { success: true, messageId: resendData.id, provider: 'Resend (HTTPS)' };
+        } else {
+          console.warn(`⚠️ Resend API returned error:`, resendData.message || resendData);
+        }
+      } catch (resendErr) {
+        console.warn(`⚠️ Resend HTTPS API call failed:`, resendErr.message);
+      }
+    }
+
+    // ── Mode 2: Brevo HTTPS API (Port 443 — NEVER BLOCKED BY RENDER) ──
+    const brevoApiKey = (process.env.BREVO_API_KEY || '').trim();
+    if (brevoApiKey) {
+      console.log(`📧 Sending order notification via Brevo HTTPS API...`);
+      try {
+        const brevoRes = await fetch('https://api.brevo.com/v3/smtp/email', {
+          method: 'POST',
+          headers: {
+            'api-key': brevoApiKey,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            sender: { name: 'Break Time Cafe', email: senderEmail || adminEmail },
+            to: [{ email: adminEmail || senderEmail }],
+            subject: `🍽 New Order Received — ${orderNumber}`,
+            htmlContent,
+            textContent,
+          }),
+        });
+
+        const brevoData = await brevoRes.json();
+        if (brevoRes.ok) {
+          console.log(`✅ Email sent via Brevo HTTPS API — Message ID: ${brevoData.messageId}`);
+          return { success: true, messageId: brevoData.messageId, provider: 'Brevo (HTTPS)' };
+        } else {
+          console.warn(`⚠️ Brevo API returned error:`, brevoData.message || brevoData);
+        }
+      } catch (brevoErr) {
+        console.warn(`⚠️ Brevo HTTPS API call failed:`, brevoErr.message);
+      }
+    }
+
+    // ── Mode 3: Gmail SMTP (Ports 587 & 465) ──
     if (!senderEmail) {
       console.error('❌ EMAIL_USER not configured — cannot send email');
       return { success: false, error: 'EMAIL_USER not configured in environment variables' };
     }
 
-    // Build the email content
-    const htmlContent = generateOrderEmailHTML(orderData);
-    const orderNumber = orderData.orderNumber || orderData.orderId || 'New';
-
     const mailOptions = {
       from: `"Break Time Cafe" <${senderEmail}>`,
-      to: adminEmail,
+      to: adminEmail || senderEmail,
       subject: `🍽 New Order Received — ${orderNumber}`,
       html: htmlContent,
-      text: buildPlainText(orderData),
+      text: textContent,
     };
 
-    console.log(`📧 Sending order notification email to ${adminEmail}...`);
+    console.log(`📧 Sending order notification email via Gmail SMTP to ${adminEmail}...`);
 
-    // Try primary transport (Port 587)
     try {
       const info = await transporter.sendMail(mailOptions);
       console.log(`✅ Email sent successfully via Port 587 — Message ID: ${info.messageId}`);
-      return { success: true, messageId: info.messageId, port: 587 };
+      return { success: true, messageId: info.messageId, provider: 'Gmail SMTP (Port 587)' };
     } catch (primaryErr) {
-      console.warn(`⚠️ Primary transport (Port 587) failed: ${primaryErr.message}. Trying Port 465 fallback...`);
-      // Try fallback transport (Port 465)
+      console.warn(`⚠️ Primary SMTP (Port 587) failed: ${primaryErr.message}. Trying Port 465 fallback...`);
       const fallbackInfo = await fallbackTransporter.sendMail(mailOptions);
       console.log(`✅ Email sent successfully via Port 465 — Message ID: ${fallbackInfo.messageId}`);
-      return { success: true, messageId: fallbackInfo.messageId, port: 465 };
+      return { success: true, messageId: fallbackInfo.messageId, provider: 'Gmail SMTP (Port 465)' };
     }
   } catch (error) {
-    console.error('❌ Email sending failed (both ports):', error.message);
-    console.error('   Stack:', error.stack);
+    console.error('❌ Email sending failed:', error.message);
     return { success: false, error: error.message };
   }
 }

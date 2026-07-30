@@ -49,14 +49,19 @@ app.get('/api/health', (req, res) => {
   });
 });
 
-// Email Diagnostic — checks if SMTP credentials are configured and can connect
+// Email Diagnostic — checks if HTTPS APIs or SMTP credentials are configured
 app.get('/api/health/email', async (req, res) => {
   const { transporter } = require('./config/mailConfig');
   const emailUser = (process.env.EMAIL_USER || '').trim();
   const emailPass = (process.env.EMAIL_PASS || '').trim();
   const adminEmail = (process.env.ADMIN_EMAIL || '').trim();
+  const resendKey = (process.env.RESEND_API_KEY || '').trim();
+  const brevoKey = (process.env.BREVO_API_KEY || '').trim();
 
   const diagnostics = {
+    RESEND_API_KEY_set: !!resendKey,
+    RESEND_API_KEY_value: resendKey ? `${resendKey.slice(0, 5)}***` : 'NOT SET',
+    BREVO_API_KEY_set: !!brevoKey,
     EMAIL_USER_set: !!emailUser,
     EMAIL_USER_value: emailUser ? `${emailUser.slice(0, 4)}***${emailUser.slice(-10)}` : 'NOT SET',
     EMAIL_PASS_set: !!emailPass,
@@ -65,14 +70,23 @@ app.get('/api/health/email', async (req, res) => {
     ADMIN_EMAIL_value: adminEmail ? `${adminEmail.slice(0, 4)}***${adminEmail.slice(-10)}` : 'NOT SET',
   };
 
-  try {
-    await transporter.verify();
-    diagnostics.smtp_connection = 'SUCCESS';
-    diagnostics.smtp_ready = true;
-  } catch (error) {
-    diagnostics.smtp_connection = 'FAILED';
-    diagnostics.smtp_error = error.message;
-    diagnostics.smtp_ready = false;
+  if (resendKey) {
+    diagnostics.recommended_provider = 'Resend (HTTPS API - Port 443)';
+    diagnostics.status = 'READY (Using Resend HTTPS API)';
+  } else if (brevoKey) {
+    diagnostics.recommended_provider = 'Brevo (HTTPS API - Port 443)';
+    diagnostics.status = 'READY (Using Brevo HTTPS API)';
+  } else {
+    try {
+      await transporter.verify();
+      diagnostics.smtp_connection = 'SUCCESS';
+      diagnostics.smtp_ready = true;
+    } catch (error) {
+      diagnostics.smtp_connection = 'FAILED';
+      diagnostics.smtp_error = error.message;
+      diagnostics.smtp_ready = false;
+      diagnostics.notice = 'Render blocks SMTP TCP ports 587/465. Adding RESEND_API_KEY (100% free at resend.com) on Render fix this instantly over HTTPS!';
+    }
   }
 
   res.status(200).json(diagnostics);
