@@ -39,8 +39,8 @@ export function AuthProvider({ children }) {
         setUser(firebaseUser);
 
         if (firebaseUser) {
-          // Fetch the customer profile from Firestore
-          const profile = await getCustomerProfile(firebaseUser.uid);
+          // Fetch or auto-create customer profile from Firestore
+          const profile = await getCustomerProfile(firebaseUser.uid, firebaseUser);
           setUserProfile(profile);
         } else {
           setUserProfile(null);

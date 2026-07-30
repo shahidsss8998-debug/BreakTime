@@ -26,6 +26,30 @@ export default function LoginPage() {
     document.referrer.includes('android-app://')
   );
 
+  // Handle back button exit for installed PWA / Standalone mode
+  useEffect(() => {
+    if (authLoading || isLoggedIn || !isStandalone) return;
+
+    // Push state so pressing back button triggers popstate and attempts app exit
+    window.history.pushState({ isPwaLogin: true }, '', window.location.href);
+
+    const handlePopState = () => {
+      // Intercept back button on Login page in Standalone mode:
+      // Lock history on Login page and attempt to exit/close PWA window
+      window.history.pushState({ isPwaLogin: true }, '', window.location.href);
+      try {
+        window.close();
+      } catch (err) {
+        // Fallback
+      }
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => {
+      window.removeEventListener('popstate', handlePopState);
+    };
+  }, [authLoading, isLoggedIn, isStandalone]);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');

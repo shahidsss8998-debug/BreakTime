@@ -15,30 +15,43 @@ import {
 import { doc, setDoc, getDoc, serverTimestamp } from 'firebase/firestore';
 import { auth, db } from '../firebase/config';
 
-// Initialize Google Auth Provider
-const googleProvider = new GoogleAuthProvider();
-
 /**
  * Sign in or Sign up with Google
  * Creates a Firestore profile if this is a new user
  * @returns {Object} The signed-in user object
  */
 export async function signInWithGoogle() {
-  const userCredential = await signInWithPopup(auth, googleProvider);
+  const googleProvider = new GoogleAuthProvider();
+  googleProvider.setCustomParameters({ prompt: 'select_account' });
+
+  let userCredential;
+  try {
+    userCredential = await signInWithPopup(auth, googleProvider);
+  } catch (popupError) {
+    if (popupError.code === 'auth/popup-blocked' || popupError.code === 'auth/cancelled-popup-request') {
+      userCredential = await signInWithPopup(auth, googleProvider);
+    } else {
+      throw popupError;
+    }
+  }
+
   const user = userCredential.user;
 
-  // Check if user already exists in Firestore
-  const docRef = doc(db, 'users', user.uid);
-  const docSnap = await getDoc(docRef);
+  // Ensure customer profile exists in Firestore
+  try {
+    const docRef = doc(db, 'users', user.uid);
+    const docSnap = await getDoc(docRef);
 
-  // If this is a first-time login, create their profile
-  if (!docSnap.exists()) {
-    await setDoc(docRef, {
-      uid: user.uid,
-      name: user.displayName || 'Customer',
-      email: user.email,
-      createdAt: serverTimestamp()
-    });
+    if (!docSnap.exists()) {
+      await setDoc(docRef, {
+        uid: user.uid,
+        name: user.displayName || 'Customer',
+        email: user.email || '',
+        createdAt: serverTimestamp()
+      });
+    }
+  } catch (profileErr) {
+    console.warn('Profile creation warning in signInWithGoogle:', profileErr);
   }
 
   return user;
@@ -53,14 +66,11 @@ export async function signInWithGoogle() {
  * @returns {Object} The created user object
  */
 export async function signUpCustomer(email, password, name) {
-  // Create the Firebase Auth user
   const userCredential = await createUserWithEmailAndPassword(auth, email, password);
   const user = userCredential.user;
 
-  // Update the display name on the auth profile
   await updateProfile(user, { displayName: name });
 
-  // Write customer profile to Firestore 'users' collection
   await setDoc(doc(db, 'users', user.uid), {
     uid: user.uid,
     name,
@@ -91,12 +101,43 @@ export async function logoutCustomer() {
 
 /**
  * Fetch customer profile data from Firestore
+ * If profile does not exist yet (e.g. first-time Google sign-in), creates it instantly
  * @param {string} uid 
- * @returns {Object|null} Customer profile or null if not found
+ * @param {Object} [fallbackUser] - Optional Firebase Auth user object for fallback creation
+ * @returns {Object|null} Customer profile
  */
-export async function getCustomerProfile(uid) {
-  const docSnap = await getDoc(doc(db, 'users', uid));
-  return docSnap.exists() ? docSnap.data() : null;
+export async function getCustomerProfile(uid, fallbackUser = null) {
+  try {
+    const docRef = doc(db, 'users', uid);
+    const docSnap = await getDoc(docRef);
+
+    if (docSnap.exists()) {
+      return docSnap.data();
+    }
+
+    if (fallbackUser) {
+      const newProfile = {
+        uid: fallbackUser.uid,
+        name: fallbackUser.displayName || 'Customer',
+        email: fallbackUser.email || '',
+        createdAt: serverTimestamp()
+      };
+      await setDoc(docRef, newProfile);
+      return newProfile;
+    }
+
+    return null;
+  } catch (err) {
+    console.error('Error fetching customer profile:', err);
+    if (fallbackUser) {
+      return {
+        uid: fallbackUser.uid,
+        name: fallbackUser.displayName || 'Customer',
+        email: fallbackUser.email || ''
+      };
+    }
+    return null;
+  }
 }
 
 /**
@@ -120,4 +161,3 @@ export async function updateCustomerProfile(uid, profileData) {
     updatedAt: serverTimestamp()
   }, { merge: true });
 }
-

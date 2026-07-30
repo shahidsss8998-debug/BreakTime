@@ -25,7 +25,7 @@ export default function CustomerNavigation() {
   const handleLogout = async () => {
     try {
       await logoutCustomer();
-      navigate('/login');
+      navigate('/login', { replace: true });
     } catch (error) {
       console.error('Logout error:', error);
     }

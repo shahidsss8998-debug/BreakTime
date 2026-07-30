@@ -1,14 +1,13 @@
 /**
  * Order Routes
  *
- * Defines the API endpoints for order management.
- * Currently exposes:
- *   POST /  →  Create a new order (with validation middleware)
+ * Defines API endpoints for order management.
  */
 const express = require('express');
 const router = express.Router();
 const {
   createOrder,
+  sendOrderEmailNotification,
   hideCustomerOrder,
   clearPastCustomerOrders,
   hideAdminOrder,
@@ -18,6 +17,9 @@ const validateOrder = require('../middleware/validateOrder');
 
 // POST /api/orders — Create a new order with email notification
 router.post('/', validateOrder, createOrder);
+
+// POST /api/orders/send-email — Fast-path background email notification
+router.post('/send-email', sendOrderEmailNotification);
 
 // POST /api/orders/hide-customer-order
 router.post('/hide-customer-order', hideCustomerOrder);

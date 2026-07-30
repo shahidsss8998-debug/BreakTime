@@ -1,13 +1,8 @@
 /**
  * Order Controller
  *
- * Handles the POST /api/orders endpoint.
- * Orchestrates: Validate → Save to Firestore → Send Email → Respond.
- *
- * Error handling strategy:
- *   - If Firestore fails → return error, do NOT send email
- *   - If Firestore succeeds but email fails → order is saved, log error, return success
- *   - Customer never loses their order because of an email issue
+ * Handles POST /api/orders and POST /api/orders/send-email endpoints.
+ * Orchestrates: Save to Firestore → Trigger Email → Respond.
  */
 const { db } = require('../config/firebase');
 const { sendOrderNotification } = require('../services/emailService');
@@ -15,7 +10,6 @@ const admin = require('firebase-admin');
 
 /**
  * Generate a short order number like "BT-1A2B3C"
- * Must match the frontend's generateOrderNumber() format exactly.
  */
 function generateOrderNumber() {
   const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
@@ -41,7 +35,6 @@ async function createOrder(req, res) {
       deliveryDetails,
     } = req.body;
 
-    // ── 1. Build order data matching existing Firestore schema ──
     const now = admin.firestore.Timestamp.now();
     const orderNumber = generateOrderNumber();
 
@@ -62,7 +55,6 @@ async function createOrder(req, res) {
       subtotal: items.reduce((sum, item) => sum + item.price * item.quantity, 0),
       deliveryFee: deliveryDetails.deliveryFee || 0,
       deliveryAddress: deliveryDetails.place || '',
-      // Delivery location data (from geolocation-based delivery check)
       latitude: deliveryDetails.latitude || null,
       longitude: deliveryDetails.longitude || null,
       distance: deliveryDetails.distance || null,
@@ -75,7 +67,6 @@ async function createOrder(req, res) {
         date: deliveryDetails.date || '',
         time: deliveryDetails.time || '',
         notes: deliveryDetails.notes || '',
-        // Location fields stored inside deliveryDetails as well
         latitude: deliveryDetails.latitude || null,
         longitude: deliveryDetails.longitude || null,
         distance: deliveryDetails.distance || null,
@@ -87,7 +78,6 @@ async function createOrder(req, res) {
       updatedAt: admin.firestore.FieldValue.serverTimestamp(),
     };
 
-    // ── 2. Save order to Firestore ──
     console.log(`📋 Saving order for ${customerName} (${customerEmail})...`);
     let docRef;
     try {
@@ -104,7 +94,6 @@ async function createOrder(req, res) {
     const orderId = docRef.id;
     console.log(`✅ Order saved to Firestore — ID: ${orderId}, Number: ${orderNumber}`);
 
-    // ── 3. Send email notification (fire-and-forget to speed up response) ──
     const emailData = {
       ...orderData,
       orderId,
@@ -117,14 +106,13 @@ async function createOrder(req, res) {
         if (emailResult.success) {
           console.log(`📧 Notification email sent for order ${orderNumber}`);
         } else {
-          console.error(`⚠️  Email notification failed for order ${orderNumber}:`, emailResult.error);
+          console.error(`⚠️ Email notification failed for order ${orderNumber}:`, emailResult.error);
         }
       })
       .catch((err) => {
-        console.error(`⚠️  Unhandled error in sendOrderNotification for order ${orderNumber}:`, err);
+        console.error(`⚠️ Unhandled error in sendOrderNotification for order ${orderNumber}:`, err);
       });
 
-    // ── 4. Return success to the customer immediately ──
     return res.status(201).json({
       success: true,
       message: 'Order placed successfully!',
@@ -134,11 +122,62 @@ async function createOrder(req, res) {
     });
   } catch (error) {
     console.error('❌ Unexpected error in createOrder:', error.message);
-    console.error('   Stack:', error.stack);
     return res.status(500).json({
       success: false,
       message: 'An unexpected error occurred. Please try again.',
     });
+  }
+}
+
+/**
+ * Send email notification for an order (Background Fast-Path)
+ * POST /api/orders/send-email
+ */
+async function sendOrderEmailNotification(req, res) {
+  try {
+    const {
+      orderId,
+      orderNumber,
+      customerId,
+      customerName,
+      customerEmail,
+      items,
+      total,
+      deliveryDetails = {},
+    } = req.body;
+
+    const emailData = {
+      orderId: orderId || 'N/A',
+      orderNumber: orderNumber || 'New',
+      customerId,
+      customerName,
+      customerEmail,
+      items: items || [],
+      total: total || 0,
+      subtotal: items ? items.reduce((sum, item) => sum + item.price * item.quantity, 0) : total,
+      deliveryFee: deliveryDetails.deliveryFee || 0,
+      deliveryAddress: deliveryDetails.place || '',
+      deliveryDetails,
+      specialInstructions: deliveryDetails.notes || '',
+      createdAt: new Date(),
+    };
+
+    sendOrderNotification(emailData)
+      .then((emailResult) => {
+        if (emailResult.success) {
+          console.log(`📧 Notification email sent for fast-path order ${orderId}`);
+        } else {
+          console.error(`⚠️ Fast-path email notification failed for order ${orderId}:`, emailResult.error);
+        }
+      })
+      .catch((err) => {
+        console.error(`⚠️ Error in sendOrderNotification for order ${orderId}:`, err);
+      });
+
+    return res.status(200).json({ success: true, message: 'Email notification triggered' });
+  } catch (error) {
+    console.error('Error in sendOrderEmailNotification:', error);
+    return res.status(500).json({ success: false, message: error.message });
   }
 }
 
@@ -236,6 +275,7 @@ async function clearAdminHistory(req, res) {
 
 module.exports = {
   createOrder,
+  sendOrderEmailNotification,
   hideCustomerOrder,
   clearPastCustomerOrders,
   hideAdminOrder,
