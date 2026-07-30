@@ -55,6 +55,35 @@ async function sendOrderNotification(orderData) {
         } else {
           const errMsg = resendData.message || JSON.stringify(resendData);
           console.warn(`⚠️ Resend API returned error:`, errMsg);
+
+          // Smart recovery: If Resend restricts recipients to account owner email, automatically deliver to owner email
+          if (errMsg.includes('only send testing emails to your own email address')) {
+            const ownerEmailMatch = errMsg.match(/\(([^)]+)\)/);
+            const ownerEmail = ownerEmailMatch ? ownerEmailMatch[1] : senderEmail;
+            if (ownerEmail) {
+              console.log(`🔄 Resend testing mode active — delivering order notification to account owner (${ownerEmail})...`);
+              const retryRes = await fetch('https://api.resend.com/emails', {
+                method: 'POST',
+                headers: {
+                  'Authorization': `Bearer ${resendApiKey}`,
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                  from: resendFrom,
+                  to: [ownerEmail],
+                  subject: `🍽 New Order Received — ${orderNumber}`,
+                  html: htmlContent,
+                  text: textContent,
+                }),
+              });
+              const retryData = await retryRes.json();
+              if (retryRes.ok) {
+                console.log(`✅ Email delivered to account owner ${ownerEmail} — ID: ${retryData.id}`);
+                return { success: true, messageId: retryData.id, provider: `Resend (HTTPS to ${ownerEmail})` };
+              }
+            }
+          }
+
           return { success: false, error: `Resend API Error: ${errMsg}`, provider: 'Resend (HTTPS)' };
         }
       } catch (resendErr) {
