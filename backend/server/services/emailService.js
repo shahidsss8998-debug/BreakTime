@@ -2,10 +2,10 @@
  * Email Service
  *
  * Reusable service for sending order notification emails.
- * Separated from the controller for clean architecture and testability.
+ * Uses primary SMTP transporter (Port 587) with fallback (Port 465).
  * Handles errors gracefully — never throws, always returns a result object.
  */
-const { transporter } = require('../config/mailConfig');
+const { transporter, fallbackTransporter } = require('../config/mailConfig');
 const { generateOrderEmailHTML } = require('../utils/emailTemplate');
 
 /**
@@ -21,7 +21,7 @@ async function sendOrderNotification(orderData) {
 
     if (!senderEmail) {
       console.error('❌ EMAIL_USER not configured — cannot send email');
-      return { success: false, error: 'EMAIL_USER not configured' };
+      return { success: false, error: 'EMAIL_USER not configured in environment variables' };
     }
 
     // Build the email content
@@ -33,17 +33,25 @@ async function sendOrderNotification(orderData) {
       to: adminEmail,
       subject: `🍽 New Order Received — ${orderNumber}`,
       html: htmlContent,
-      // Plain text fallback for email clients that don't support HTML
       text: buildPlainText(orderData),
     };
 
     console.log(`📧 Sending order notification email to ${adminEmail}...`);
-    const info = await transporter.sendMail(mailOptions);
-    console.log(`✅ Email sent successfully — Message ID: ${info.messageId}`);
 
-    return { success: true, messageId: info.messageId };
+    // Try primary transport (Port 587)
+    try {
+      const info = await transporter.sendMail(mailOptions);
+      console.log(`✅ Email sent successfully via Port 587 — Message ID: ${info.messageId}`);
+      return { success: true, messageId: info.messageId, port: 587 };
+    } catch (primaryErr) {
+      console.warn(`⚠️ Primary transport (Port 587) failed: ${primaryErr.message}. Trying Port 465 fallback...`);
+      // Try fallback transport (Port 465)
+      const fallbackInfo = await fallbackTransporter.sendMail(mailOptions);
+      console.log(`✅ Email sent successfully via Port 465 — Message ID: ${fallbackInfo.messageId}`);
+      return { success: true, messageId: fallbackInfo.messageId, port: 465 };
+    }
   } catch (error) {
-    console.error('❌ Email sending failed:', error.message);
+    console.error('❌ Email sending failed (both ports):', error.message);
     console.error('   Stack:', error.stack);
     return { success: false, error: error.message };
   }
@@ -79,7 +87,6 @@ function buildPlainText(orderData) {
   const itemsList = items.map((item) => `  ${item.quantity} × ${item.name} — ₹${item.price * item.quantity}`).join('\n');
   const charge = deliveryCharge ?? deliveryFee ?? 0;
 
-  // Build location info section (only if coordinates are available)
   const locationInfo = (latitude && longitude) ? `
 ━━━━ Delivery Location ━━━━
 Distance: ${distance != null ? `${distance} meters` : 'N/A'}
